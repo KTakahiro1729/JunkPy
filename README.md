@@ -2,17 +2,30 @@ this script is useful when you want your python to be a one-liner.
 
 run script by
 
-```
+```python3
 import junkpy
 
-source = "a=3"
-junkpy.JunkModule(source).output
+source = '''
+a = 7
+b = 2
+a = 3
+c = a + b
+print(c)'''
+
+code = junkpy.JunkModule(source).output
+print("code:", code)
 ```
 
-output
-
+```console
+code: [None for ns in[ns for ns in[ns for ns in[ns for ns in[ns for ns in[ns for ns in[__builtins__ if(type(__builtins__) is dict)else{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}]if[ns.update({"a":7})]]if[ns.update({"b":2})]]if[ns.update({"a":3})]]if[ns.update({"c":ns["a"]+ns["b"]})]]if[ns["print"](ns["c"])]]][0]
 ```
-'[None for ns in[ns for ns in[{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}]if[ns.update({"a":3})]]][0]'
+
+```python
+[None for ns in[ns for ns in[ns for ns in[ns for ns in[ns for ns in[ns for ns in[__builtins__ if(type(__builtins__) is dict)else{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}]if[ns.update({"a":7})]]if[ns.update({"b":2})]]if[ns.update({"a":3})]]if[ns.update({"c":ns["a"]+ns["b"]})]]if[ns["print"](ns["c"])]]][0]
+```
+
+```console
+5
 ```
 
 For more detail read
