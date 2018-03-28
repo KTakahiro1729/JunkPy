@@ -67,9 +67,7 @@ class JunkModule(JunkType):
         super().__init__(*args, **kwargs)
     def walk_child(self):
         self.struct.head     += "[ns " if self.save_ns else "[None "
-        self.struct.shoulder += "for ns in["+"globals()[\"__builtins__\"]]"
-        #{attr:getattr(__builtins__,attr)for attr in dir(
-        #"__builtins__)}]"
+        self.struct.shoulder += "for ns in[globals()[\"__builtins__\"]if(type(globals()[\"__builtins__\"]) is dict)else{attr:getattr(__builtins__,attr)for attr in dir(globals()[\"__builtins__\"])}]"
         self.struct.foot     += "][0]"
         for child in ast.iter_child_nodes(self.node):
             self.struct += self.make_junk(child, self.connector).struct
