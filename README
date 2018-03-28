@@ -3,8 +3,10 @@ this script is useful when you want your python to be a one-liner.
 run script by
 
 ```
+import junkpy
+
 source = "a=3"
-JunkModule(source)
+junkpy.JunkModule(source)
 ```
 
 For more detail read
