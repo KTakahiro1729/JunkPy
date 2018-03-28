@@ -46,7 +46,7 @@ class JunkType():
             if type(child) == junktype.node_type:
                 return junktype(node = child, connector = connector)
         else:
-            raise Exception("{0} is Unknown Type".format(type(child)))
+            raise Exception("{0} not in candidate : {1}".format(type(child),candidate))
     def child_struct(self):
         child_struct = dict([])
         for child_name in self.node._fields:
