@@ -24,7 +24,6 @@ class JunkType():
     @property
     def lower_node(self):
         return []
-
     def check_node_type(self):
         if type(self.node) != self.node_type:
             raise Exception("Wrong Type\nWant : {0}\nNot  : {1}".format(self.node_type, type(self.node)))
@@ -41,7 +40,6 @@ class JunkType():
         self.output = self.struct.join(connector)
     def walk_child(self):
         pass
-
     def make_junk(self, child, connector=""):
         candidate = self.lower_node
         for junktype in candidate:
@@ -49,7 +47,15 @@ class JunkType():
                 return junktype(node = child, connector = connector)
         else:
             raise Exception("{0} is Unknown Type".format(type(child)))
-
+    def child_struct(self):
+        child_struct = dict([])
+        for child_name in self.node._fields:
+            child_node = getattr(self.node, child_name)
+            if type(child_node) == list:
+                child_struct[child_name] = [self.make_junk(i).struct for i in child_node]
+            else:
+                child_struct[child_name] = self.make_junk(child_node).struct
+        return child_struct
 #mod
 class JunkModule(JunkType):
     node_type = ast.Module
@@ -86,12 +92,12 @@ class JunkAssign(JunkType):
     def lower_node(self):
         return expr
     def walk_child(self):
-        target = self.node.targets[0]
-        value = self.node.value
-        body_target = self.make_junk(target).struct.body
-        body_value = self.make_junk(value).struct.body
+        child_struct = self.child_struct()
         self.struct.neck = "for ns in[ns "
-        self.struct.body = "if[ns.update({\"" + body_target + "\":" + body_value + "})]]" + self.connector
+        self.struct.body = "if[ns.update({{\"{0}\":{1}}})]]{2}".format(
+                child_struct["targets"][0].body,
+                child_struct["value"].body,
+                self.connector,)
 
 #expr
 class JunkDict(JunkType):
@@ -107,8 +113,13 @@ class JunkDict(JunkType):
 
 class JunkCall(JunkType):
     node_type = ast.Call
+    @property
+    def lower_node(self):
+        return expr
     def walk_child(self):
-        pass
+        child_struct = self.child_struct()
+        self.struct.neck = "for ns in[ns "
+        self.struct.body = "if[ns.update({\"" + body_target + "\":" + body_value + "})]]" + self.connector
 
 class JunkNum(JunkType):
     node_type = ast.Num
