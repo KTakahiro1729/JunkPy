@@ -67,7 +67,7 @@ class JunkModule(JunkType):
         super().__init__(*args, **kwargs)
     def walk_child(self):
         self.struct.head     += "[ns " if self.save_ns else "[None "
-        self.struct.shoulder += "for ns in[{attr:getattr(__builtin__,attr)for attr in dir(__builtin__)}]"
+        self.struct.shoulder += "for ns in[{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}]"
         self.struct.foot     += "][0]"
         for child in ast.iter_child_nodes(self.node):
             self.struct += self.make_junk(child, self.connector).struct
@@ -102,6 +102,18 @@ class JunkAssign(JunkType):
                 self.connector,)
 
 #expr
+class JunkBinOp(JunkType):
+    node_type = ast.BinOp
+    @property
+    def lower_node(self):
+        return expr + operator
+    def walk_child(self):
+        child_struct = self.child_struct()
+        self.struct.body = "{0}{1}{2}".format(
+                child_struct["left"].body,
+                child_struct["op"].body,
+                child_struct["right"].body,)
+
 class JunkDict(JunkType):
     node_type = ast.Dict
     @property
@@ -152,7 +164,12 @@ class JunkStore(JunkType):
     def walk_child(self):
         pass
 
+class JunkAdd(JunkType):
+    node_type = ast.Add
+    def walk_child(self):
+        self.struct.body = "+"
 mod = [JunkModule]
 stmt = [JunkExpr, JunkAssign]
-expr = [JunkDict, JunkCall, JunkNum, JunkStr, JunkName]
+expr = [JunkBinOp, JunkDict, JunkCall, JunkNum, JunkStr, JunkName]
 expr_context = [JunkLoad, JunkStore]
+operator = [JunkAdd]
