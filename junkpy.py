@@ -66,7 +66,6 @@ class JunkModule(JunkType):
         for child in ast.iter_child_nodes(self.node):
             self.struct += self.make_junk(child, self.connector).struct
 
-
 #stmt
 class JunkExpr(JunkType):
     node_type = ast.Expr
@@ -93,7 +92,6 @@ class JunkAssign(JunkType):
         body_value = self.make_junk(value).struct.body
         self.struct.neck = "for ns in[ns "
         self.struct.body = "if[ns.update({\"" + body_target + "\":" + body_value + "})]]" + self.connector
-        value = self.node.value
 
 #expr
 class JunkDict(JunkType):
