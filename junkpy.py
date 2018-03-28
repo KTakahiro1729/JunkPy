@@ -118,8 +118,11 @@ class JunkCall(JunkType):
         return expr
     def walk_child(self):
         child_struct = self.child_struct()
-        self.struct.neck = "for ns in[ns "
-        self.struct.body = "if[ns.update({\"" + body_target + "\":" + body_value + "})]]" + self.connector
+        args_str = ",".join([arg.body for arg in child_struct["args"]])
+        self.struct.body = "{0}({1})".format(
+                child_struct["func"].body,
+                args_str,
+                self.connector,)
 
 class JunkNum(JunkType):
     node_type = ast.Num
