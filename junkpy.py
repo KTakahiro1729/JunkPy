@@ -46,7 +46,7 @@ class JunkType():
             if type(child) == junktype.node_type:
                 return junktype(node = child, connector = connector)
         else:
-            raise Exception("{0} not in candidate : {1}".format(type(child),candidate))
+            raise Exception("{0} not in candidate : {}".format(type(child),candidate))
     def child_struct(self):
         child_struct = dict([])
         for child_name in self.node._fields:
@@ -67,7 +67,9 @@ class JunkModule(JunkType):
         super().__init__(*args, **kwargs)
     def walk_child(self):
         self.struct.head     += "[ns " if self.save_ns else "[None "
-        self.struct.shoulder += "for ns in[{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}]"
+        self.struct.shoulder += "for ns in["+"globals()[\"__builtins__\"]]"
+        #{attr:getattr(__builtins__,attr)for attr in dir(
+        #"__builtins__)}]"
         self.struct.foot     += "][0]"
         for child in ast.iter_child_nodes(self.node):
             self.struct += self.make_junk(child, self.connector).struct
