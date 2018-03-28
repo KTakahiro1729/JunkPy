@@ -1,0 +1,12 @@
+this script is useful when you want your python to be a one-liner.
+
+run script by
+
+```
+source = "a=3"
+JunkModule(source)
+```
+
+For more detail read
+- https://qiita.com/KTakahiro1729/items/c9cb757473de50652374 (Japanese)
+- https://qiita.com/KTakahiro1729/items/2abef90fee3ec7b31e3e (Japanese)
