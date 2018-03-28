@@ -6,7 +6,7 @@ run script by
 import junkpy
 
 source = "a=3"
-junkpy.JunkModule(source)
+junkpy.JunkModule(source).output
 ```
 
 For more detail read
