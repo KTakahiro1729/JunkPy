@@ -31,11 +31,13 @@ def walk(node, indent=0, indent_size = 4):
         walk(child, indent=indent+indent_size, indent_size= indent_size)
 
 
-def parse_test(k,v,cor):
-    if v == cor:
+def parse_test(topic,output,correct,evaluate):
+    if output == correct:
+        if evaluate:
+            eval(output)
         return True
     else:
-        print("{0}\nwrong   : {1} \ncorrect : {2}".format(k,v,cor))
+        print("{0}\nwrong   : {1} \ncorrect : {2}".format(topic,output,correct))
         return False
 def parse_terminal(source):
     ast_object = ast.parse(source)
