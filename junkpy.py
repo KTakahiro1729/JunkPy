@@ -2,6 +2,7 @@
 import ast
 import copy
 from collections import namedtuple
+
 class JunkStruct():
     def __init__(self, head = "", neck = "", shoulder = "", body = "", foot = ""):
         self.head = head
@@ -16,7 +17,6 @@ class JunkStruct():
     def __add__(self, other):
         return JunkStruct(*[getattr(self, attr) + getattr(other, attr) for attr in self.order])
 
-
 class JunkType():
     @property
     def node_type(self):
@@ -27,7 +27,7 @@ class JunkType():
     def check_node_type(self):
         if type(self.node) != self.node_type:
             raise Exception("Wrong Type\nWant : {0}\nNot  : {1}".format(self.node_type, type(self.node)))
-    def __init__(self, node, struct = None, connector = ""):
+    def __init__(self, node, struct = None, connector = "", indent = ""):
         if struct == None:
             struct = JunkStruct()
         if type(node) == str:
@@ -36,18 +36,23 @@ class JunkType():
         self.check_node_type()
         self.struct = copy.deepcopy(struct)
         self.connector = connector
+        self.indent = indent
         self.walk_child()
         self.output = self.struct.join(connector)
     def walk_child(self):
         pass
-    def make_junk(self, child, connector=""):
+    def make_junk(self, child, connector = None, lower_node = None):
+        if connector is None:
+            connector = self.connector
+        if lower_node is None:
+            lower_node = self.lower_node
         candidate = self.lower_node
         for junktype in candidate:
             if type(child) == junktype.node_type:
                 return junktype(node = child, connector = connector)
         else:
             raise Exception("{0} not in candidate : {}".format(type(child),candidate))
-    def child_struct(self):
+    def make_child_struct(self):
         child_struct = dict([])
         for child_name in self.node._fields:
             child_node = getattr(self.node, child_name)
@@ -56,6 +61,15 @@ class JunkType():
             else:
                 child_struct[child_name] = self.make_junk(child_node).struct
         return child_struct
+    def make_block(self, exprs):
+
+        block_struct = JunkStruct(
+            head = "[None ",
+            shoulder = self.connector + self.indent + "for ns in[ns]",
+            foot="]")
+        for child in ast.iter_child_nodes(self.node):
+            block_struct += self.make_junk(child, self.connector).struct
+        return block_struct
 #mod
 class JunkModule(JunkType):
     node_type = ast.Module
@@ -97,7 +111,7 @@ class JunkAssign(JunkType):
     def lower_node(self):
         return expr
     def walk_child(self):
-        child_struct = self.child_struct()
+        child_struct = self.make_child_struct()
         self.struct.neck = "for ns in[ns "
         key_in_ns = child_struct["targets"][0].body
         key = key_in_ns[len("ns[\""):len(key_in_ns) - len("\"]")]
@@ -106,6 +120,24 @@ class JunkAssign(JunkType):
                 child_struct["value"].body,
                 self.connector,)
 
+class JunkIf(JunkType):
+    node_type = ast.If
+    @property
+    def lower_node(self):
+        return expr+stmt
+    def walk_child(self):
+        test = self.make_junk(self.
+            node.test,
+            connector = self.connector,
+            lower_node = expr)
+        body_block =  self.make_block(self.node.body)
+        orelse_block =  self.make_block(self.node.orelse)
+        self.struct.body = "".join([
+        body_block.join(),
+        "if({0})".format(test.struct.join()),
+        orelse_block.join(),
+        ])
+
 #expr
 class JunkBinOp(JunkType):
     node_type = ast.BinOp
@@ -113,7 +145,7 @@ class JunkBinOp(JunkType):
     def lower_node(self):
         return expr + operator
     def walk_child(self):
-        child_struct = self.child_struct()
+        child_struct = self.make_child_struct()
         self.struct.body = "{0}{1}{2}".format(
                 child_struct["left"].body,
                 child_struct["op"].body,
@@ -136,7 +168,7 @@ class JunkCall(JunkType):
     def lower_node(self):
         return expr
     def walk_child(self):
-        child_struct = self.child_struct()
+        child_struct = self.make_child_struct()
         args_str = ",".join([arg.body for arg in child_struct["args"]])
         self.struct.body = "{0}({1})".format(
                 child_struct["func"].body,
@@ -152,6 +184,12 @@ class JunkStr(JunkType):
     node_type = ast.Str
     def walk_child(self):
         self.struct.body += "\"" + self.node.s + "\""
+
+class JunkNameConstant(JunkType):
+    node_type = ast.NameConstant
+    def walk_child(self):
+        self.struct.body = str(self.node.value)
+
 
 class JunkName(JunkType):
     node_type = ast.Name
@@ -175,7 +213,7 @@ class JunkAdd(JunkType):
         self.struct.body = "+"
 
 mod = [JunkModule]
-stmt = [JunkExpr, JunkAssign]
-expr = [JunkBinOp, JunkDict, JunkCall, JunkNum, JunkStr, JunkName]
+stmt = [JunkExpr, JunkAssign, JunkIf]
+expr = [JunkBinOp, JunkDict, JunkCall, JunkNum, JunkStr, JunkNameConstant, JunkName]
 expr_context = [JunkLoad, JunkStore]
 operator = [JunkAdd]
