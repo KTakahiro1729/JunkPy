@@ -21,9 +21,6 @@ class JunkType():
     @property
     def node_type(self):
         return None
-    @property
-    def lower_node(self):
-        return []
     def check_node_type(self):
         if type(self.node) != self.node_type:
             raise Exception("Wrong Type\nWant : {0}\nNot  : {1}".format(self.node_type, type(self.node)))
@@ -41,26 +38,12 @@ class JunkType():
         self.output = self.struct.join(connector)
     def walk_child(self):
         pass
-    def make_junk(self, child, connector = None, lower_node = None):
-        if connector is None:
-            connector = self.connector
-        if lower_node is None:
-            lower_node = self.lower_node
-        candidate = self.lower_node
-        for junktype in candidate:
+    def make_junk(self, child, lower_node = None):
+        for junktype in lower_node:
             if type(child) == junktype.node_type:
-                return junktype(node = child, connector = connector)
+                return junktype(node = child, connector = self.connector)
         else:
-            raise Exception("{0} not in candidate : {}".format(type(child),candidate))
-    def make_child_struct(self):
-        child_struct = dict([])
-        for child_name in self.node._fields:
-            child_node = getattr(self.node, child_name)
-            if type(child_node) == list:
-                child_struct[child_name] = [self.make_junk(i).struct for i in child_node]
-            else:
-                child_struct[child_name] = self.make_junk(child_node).struct
-        return child_struct
+            raise Exception("{0} not in candidate : {1}".format(type(child),candidate))
     def make_block(self, exprs):
 
         block_struct = JunkStruct(
@@ -89,46 +72,39 @@ class JunkModule(JunkType):
         self.struct.shoulder += "for ns in[{0}]".format(ns_init)
         self.struct.foot     += "][0]"
         for child in ast.iter_child_nodes(self.node):
-            self.struct += self.make_junk(child, self.connector).struct
+            self.struct += self.make_junk(
+                child,
+                lower_node = stmt
+            ).struct
 
 #stmt
 class JunkExpr(JunkType):
     node_type = ast.Expr
-
-    @property
-    def lower_node(self):
-        return expr
     def walk_child(self):
-        child = self.node.value
-        self.struct +=  self.make_junk(child, self.connector).struct
+        value = self.make_junk(self.node.value, expr)
+        self.struct +=  value.struct
         self.struct.neck += "for ns in[ns "
         self.struct.body = "if[" + self.struct.body + "]]" + self.connector
 
 class JunkAssign(JunkType):
     node_type = ast.Assign
 
-    @property
-    def lower_node(self):
-        return expr
     def walk_child(self):
-        child_struct = self.make_child_struct()
+        targets = [self.make_junk(target,expr) for target in self.node.targets]
+        value = self.make_junk(self.node.value, expr)
         self.struct.neck = "for ns in[ns "
-        key_in_ns = child_struct["targets"][0].body
+        key_in_ns = targets[0].struct.body
         key = key_in_ns[len("ns[\""):len(key_in_ns) - len("\"]")]
         self.struct.body = "if[ns.update({{\"{0}\":{1}}})]]{2}".format(
                 key,
-                child_struct["value"].body,
+                value.struct.body,
                 self.connector,)
 
 class JunkIf(JunkType):
     node_type = ast.If
-    @property
-    def lower_node(self):
-        return expr+stmt
     def walk_child(self):
         test = self.make_junk(self.
             node.test,
-            connector = self.connector,
             lower_node = expr)
         body_block =  self.make_block(self.node.body)
         orelse_block =  self.make_block(self.node.orelse)
@@ -141,37 +117,31 @@ class JunkIf(JunkType):
 #expr
 class JunkBinOp(JunkType):
     node_type = ast.BinOp
-    @property
-    def lower_node(self):
-        return expr + operator
     def walk_child(self):
-        child_struct = self.make_child_struct()
+        left = self.make_junk(self.node.left, expr)
+        op = self.make_junk(self.node.op, operator)
+        right =self.make_junk(self.node.right, expr)
         self.struct.body = "{0}{1}{2}".format(
-                child_struct["left"].body,
-                child_struct["op"].body,
-                child_struct["right"].body,)
+                left.struct.body,
+                op.struct.body,
+                right.struct.body,)
 
 class JunkDict(JunkType):
     node_type = ast.Dict
-    @property
-    def lower_node(self):
-        return expr
     def walk_child(self):
-        keys = [self.make_junk(k, self.connector) for k in self.node.keys]
-        values = [self.make_junk(v, self.connector) for v in self.node.values]
+        keys = [self.make_junk(k, expr) for k in self.node.keys]
+        values = [self.make_junk(v, expr) for v in self.node.values]
         zipped = zip(keys, values)
         self.struct.body += "{" + ",".join([k.output + ":" + v.output for k,v in zipped]) + "}"
 
 class JunkCall(JunkType):
     node_type = ast.Call
-    @property
-    def lower_node(self):
-        return expr
     def walk_child(self):
-        child_struct = self.make_child_struct()
-        args_str = ",".join([arg.body for arg in child_struct["args"]])
+        func = self.make_junk(self.node.func, expr)
+        args = [self.make_junk(arg, expr) for arg in self.node.args]
+        args_str = ",".join([arg.struct.body for arg in args])
         self.struct.body = "{0}({1})".format(
-                child_struct["func"].body,
+                func.struct.body,
                 args_str,
                 self.connector,)
 
