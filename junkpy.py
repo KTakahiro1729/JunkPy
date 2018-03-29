@@ -3,6 +3,18 @@ import ast
 import copy
 from collections import namedtuple
 
+Node = namedtuple("Node", "nodetype number")
+
+#terminal
+class identifier():
+    pass
+class string():
+    pass
+class singleton():
+    pass
+class constant():
+    pass
+
 class JunkStruct():
     def __init__(self, head = "", neck = "", shoulder = "", body = "", foot = ""):
         self.head = head
@@ -20,7 +32,10 @@ class JunkStruct():
 class JunkType():
     @property
     def node_type(self):
-        return None
+        return ast.AST
+    @property
+    def childnode_type(self):
+        return dict([])
     def check_node_type(self):
         if type(self.node) != self.node_type:
             raise Exception("Wrong Type\nWant : {0}\nNot  : {1}".format(self.node_type, type(self.node)))
@@ -34,6 +49,7 @@ class JunkType():
         self.struct = copy.deepcopy(struct)
         self.connector = connector
         self.indent = indent
+        self.childnodes = self.parse_childnode()
         self.walk_child()
         self.output = self.struct.join(connector)
     def walk_child(self):
@@ -44,6 +60,8 @@ class JunkType():
                 return junktype(node = child, connector = self.connector)
         else:
             raise Exception("{0} not in candidate : {1}".format(type(child),candidate))
+    def parse_childnode(self):
+
     def make_block(self, exprs):
 
         block_struct = JunkStruct(
@@ -57,8 +75,8 @@ class JunkType():
 class JunkModule(JunkType):
     node_type = ast.Module
     @property
-    def lower_node(self):
-        return stmt
+    def childnode_type(self):
+        return {"body": Node(stmt, "*")}
     def __init__(self, *args,save_ns = False, **kwargs):
         self.save_ns = save_ns
         super().__init__(*args, **kwargs)
@@ -80,6 +98,9 @@ class JunkModule(JunkType):
 #stmt
 class JunkExpr(JunkType):
     node_type = ast.Expr
+    @property
+    def childnode_type(self):
+        return {"value": Node(expr, "")}
     def walk_child(self):
         value = self.make_junk(self.node.value, expr)
         self.struct +=  value.struct
@@ -88,7 +109,9 @@ class JunkExpr(JunkType):
 
 class JunkAssign(JunkType):
     node_type = ast.Assign
-
+    @property
+    def childnode_type(self):
+        return {"targets": Node(expr, "*"), "value": Node(expr, "")}
     def walk_child(self):
         targets = [self.make_junk(target,expr) for target in self.node.targets]
         value = self.make_junk(self.node.value, expr)
@@ -102,6 +125,11 @@ class JunkAssign(JunkType):
 
 class JunkIf(JunkType):
     node_type = ast.If
+    @property
+    def childnode_type(self):
+        return {"test": Node(expr, ""),
+                   "args": Node(operator, "*"),
+                   "orelse": Node(expr, "")}
     def walk_child(self):
         test = self.make_junk(self.
             node.test,
@@ -117,6 +145,11 @@ class JunkIf(JunkType):
 #expr
 class JunkBinOp(JunkType):
     node_type = ast.BinOp
+    @property
+    def childnode_type(self):
+        return {"left": Node(expr, ""),
+                   "op": Node(operator, ""),
+                   "right": Node(expr, "")}
     def walk_child(self):
         left = self.make_junk(self.node.left, expr)
         op = self.make_junk(self.node.op, operator)
@@ -128,6 +161,10 @@ class JunkBinOp(JunkType):
 
 class JunkDict(JunkType):
     node_type = ast.Dict
+    @property
+    def childnode_type(self):
+        return {"keyes": Node(expr, "*"),
+                   "values": Node(expr, "*")}
     def walk_child(self):
         keys = [self.make_junk(k, expr) for k in self.node.keys]
         values = [self.make_junk(v, expr) for v in self.node.values]
@@ -136,6 +173,11 @@ class JunkDict(JunkType):
 
 class JunkCall(JunkType):
     node_type = ast.Call
+    @property
+    def childnode_type(self):
+        return {"func": Node(expr, ""),
+                   "args": Node(expr, "*"),
+                   "keyword": Node(expr, "*")}
     def walk_child(self):
         func = self.make_junk(self.node.func, expr)
         args = [self.make_junk(arg, expr) for arg in self.node.args]
@@ -147,22 +189,34 @@ class JunkCall(JunkType):
 
 class JunkNum(JunkType):
     node_type = ast.Num
+    @property
+    def childnode_type(self):
+        return {"n": Node(object, "")}
     def walk_child(self):
         self.struct.body += str(self.node.n)
 
 class JunkStr(JunkType):
     node_type = ast.Str
+    @property
+    def childnode_type(self):
+        return {"s": Node(object, "")}
     def walk_child(self):
         self.struct.body += "\"" + self.node.s + "\""
 
 class JunkNameConstant(JunkType):
     node_type = ast.NameConstant
+    @property
+    def childnode_type(self):
+        return {"value": Node(singleton, "")}
     def walk_child(self):
         self.struct.body = str(self.node.value)
 
 
 class JunkName(JunkType):
     node_type = ast.Name
+    @property
+    def childnode_type(self):
+        return {"id": Node(idnetifier, ""), "ctx":Node(expr_context, "")}
     def walk_child(self):
         self.struct.body = "ns[\"{0}\"]".format(self.node.id)
 
@@ -182,6 +236,7 @@ class JunkAdd(JunkType):
     def walk_child(self):
         self.struct.body = "+"
 
+terminal = [identifier, int, string, bytes, object, singleton, consant]
 mod = [JunkModule]
 stmt = [JunkExpr, JunkAssign, JunkIf]
 expr = [JunkBinOp, JunkDict, JunkCall, JunkNum, JunkStr, JunkNameConstant, JunkName]
