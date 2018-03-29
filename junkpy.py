@@ -67,7 +67,12 @@ class JunkModule(JunkType):
         super().__init__(*args, **kwargs)
     def walk_child(self):
         self.struct.head     += "[ns " if self.save_ns else "[None "
-        self.struct.shoulder += 'for ns in[__builtins__ if(type(__builtins__) is dict)else{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}]'
+        ns_init = "".join([
+            "__builtins__ ",
+            "if(type(__builtins__) is dict)else",
+            "{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}"
+        ])
+        self.struct.shoulder += "for ns in[{0}]".format(ns_init)
         self.struct.foot     += "][0]"
         for child in ast.iter_child_nodes(self.node):
             self.struct += self.make_junk(child, self.connector).struct
@@ -168,6 +173,7 @@ class JunkAdd(JunkType):
     node_type = ast.Add
     def walk_child(self):
         self.struct.body = "+"
+
 mod = [JunkModule]
 stmt = [JunkExpr, JunkAssign]
 expr = [JunkBinOp, JunkDict, JunkCall, JunkNum, JunkStr, JunkName]
