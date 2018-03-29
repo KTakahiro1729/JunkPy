@@ -61,7 +61,7 @@ class JunkType():
         else:
             raise Exception("{0} not in candidate : {1}".format(type(child),candidate))
     def parse_childnode(self):
-
+        pass
     def make_block(self, exprs):
 
         block_struct = JunkStruct(
@@ -236,7 +236,7 @@ class JunkAdd(JunkType):
     def walk_child(self):
         self.struct.body = "+"
 
-terminal = [identifier, int, string, bytes, object, singleton, consant]
+terminal = [identifier, int, string, bytes, object, singleton, constant]
 mod = [JunkModule]
 stmt = [JunkExpr, JunkAssign, JunkIf]
 expr = [JunkBinOp, JunkDict, JunkCall, JunkNum, JunkStr, JunkNameConstant, JunkName]
