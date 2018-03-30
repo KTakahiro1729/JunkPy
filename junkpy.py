@@ -28,10 +28,10 @@ class JunkType():
     def child_nodetype(self):
         return dict([])
     def __init__(self, node, struct = None, connector = "", indent = ""):
-        if struct == None:
-            struct = JunkStruct()
         if type(node) == str:
             node = ast.parse(node)
+        if struct == None:
+            struct = JunkStruct()
         self.node = node
         self.struct = copy.deepcopy(struct)
         self.connector = connector
