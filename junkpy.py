@@ -30,9 +30,9 @@ class JunkType():
     def __init__(self, node, struct = None, connector = "", indent = ""):
         if type(node) == str:
             node = ast.parse(node)
+        self.node = node
         if struct == None:
             struct = JunkStruct()
-        self.node = node
         self.struct = copy.deepcopy(struct)
         self.connector = connector
         self.indent = indent
