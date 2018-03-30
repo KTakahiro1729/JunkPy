@@ -45,37 +45,40 @@ class JunkType():
         self.output = self.struct.join(connector)
     def deploy_child(self):
         pass
-    def make_junktype(self, child, lower_node = None):
+    def judge_junktype(self, child, candidate):
         ast_type = type(child)
         builtin_types = [getattr(builtins, attr) for attr in dir(builtins)]
         if ast_type in builtin_types:
-            return JunkTerminal()
-        for junktype in lower_node:
+            return JunkTerminal
+        for junktype in candidate:
             if ast_type == junktype.ast_type:
-                return junktype(node = child, connector = self.connector)
+                return junktype
         else:
-            raise Exception("{0} not in candidate : {1}".format(type(child),lower_node))
+            raise Exception("{0} not in candidate : {1}".format(type(child),candidate))
     def parse_childnode(self):
         result = dict([])
         for child_name in self.node._fields:
             field = getattr(self.node, child_name)
             node = self.child_nodetype[child_name]
             if  node.number in ["", "?"]:
-                result[child_name] = self.make_junktype(field, lower_node = node.nodetype)
+                child_node = field
+                junktype = self.judge_junktype(child_node, candidate = node.nodetype)
+                result[child_name] = junktype(node = child_node, connector = self.connector)
             elif node.number == "*":
-                result[child_name] = \
-                    [self.make_junktype(one_node, lower_node = node.nodetype)
-                        for one_node in field]
+                result[child_name] = []
+                for child_node in field:
+                    junktype = self.judge_junktype(child_node, candidate = node.nodetype)
+                    result[child_name].append(junktype(node = child_node, connector = self.connector))
         return result
-    def make_block(self, exprs):
-
-        block_struct = JunkStruct(
-            head = "[None ",
-            shoulder = self.connector + self.indent + "for ns in[ns]",
-            foot="]")
-        for child in ast.iter_child_nodes(self.node):
-            block_struct += self.make_junktype(child, self.connector).struct
-        return block_struct
+    # def make_block(self, exprs):
+    #
+    #     block_struct = JunkStruct(
+    #         head = "[None ",
+    #         shoulder = self.connector + self.indent + "for ns in[ns]",
+    #         foot="]")
+    #     for child in ast.iter_child_nodes(self.node):
+    #         block_struct += self.make_junktype(child, self.connector).struct
+    #     return block_struct
 
 #mod
 class JunkModule(JunkType):
@@ -95,15 +98,13 @@ class JunkModule(JunkType):
         ])
         self.struct.shoulder += "for ns in[{0}]".format(ns_init)
         self.struct.foot     += "][0]"
-        for child in ast.iter_child_nodes(self.node):
-            self.struct += self.make_junk(
-                child,
-                lower_node = stmt
-            ).struct
+        for body in self.junkchild_dict["body"]:
+            self.struct += body.struct
 
 #terminal
 class JunkTerminal():
-    pass
+    def __init__(self, *args, **kwargs):
+        pass
 
 #stmt
 class JunkExpr(JunkType):
@@ -112,8 +113,7 @@ class JunkExpr(JunkType):
     def child_nodetype(self):
         return {"value": ChildArg(expr, "")}
     def deploy_child(self):
-        value = self.make_junktype(self.node.value, expr)
-        self.struct +=  value.struct
+        self.struct +=  self.junkchild_dict["value"].struct
         self.struct.neck += "for ns in[ns "
         self.struct.trunk = "if[" + self.struct.trunk + "]]" + self.connector
 
@@ -123,34 +123,30 @@ class JunkAssign(JunkType):
     def child_nodetype(self):
         return {"targets": ChildArg(expr, "*"), "value": ChildArg(expr, "")}
     def deploy_child(self):
-        targets = [self.make_junktype(target,expr) for target in self.node.targets]
-        value = self.make_junktype(self.node.value, expr)
         self.struct.neck = "for ns in[ns "
-        key_in_ns = targets[0].struct.trunk
+        key_in_ns = self.junkchild_dict["targets"][0].struct.trunk
         key = key_in_ns[len("ns[\""):len(key_in_ns) - len("\"]")]
         self.struct.trunk = "if[ns.update({{\"{0}\":{1}}})]]{2}".format(
                 key,
-                value.struct.trunk,
+                self.junkchild_dict["value"].struct.trunk,
                 self.connector,)
 
-class JunkIf(JunkType):
-    ast_type = ast.If
-    @property
-    def child_nodetype(self):
-        return {"test": ChildArg(expr, ""),
-                   "args": ChildArg(operator, "*"),
-                   "orelse": ChildArg(expr, "")}
-    def deploy_child(self):
-        test = self.make_junktype(self.
-            node.test,
-            lower_node = expr)
-        body_block =  self.make_block(self.node.body)
-        orelse_block =  self.make_block(self.node.orelse)
-        self.struct.trunk = "".join([
-        body_block.join(),
-        "if({0})".format(test.struct.join()),
-        orelse_block.join(),
-        ])
+# class JunkIf(JunkType):
+#     ast_type = ast.If
+#     @property
+#     def child_nodetype(self):
+#         return {"test": ChildArg(expr, ""),
+#                    "args": ChildArg(operator, "*"),
+#                    "orelse": ChildArg(expr, "")}
+#     def deploy_child(self):
+#         test = self.junkchild_dict["test"]
+#         body_block =  self.make_block(self.node.body)
+#         orelse_block =  self.make_block(self.node.orelse)
+#         self.struct.trunk = "".join([
+#         body_block.join(),
+#         "if({0})".format(test.struct.join()),
+#         orelse_block.join(),
+#         ])
 
 #expr
 class JunkBinOp(JunkType):
@@ -161,13 +157,10 @@ class JunkBinOp(JunkType):
                    "op": ChildArg(operator, ""),
                    "right": ChildArg(expr, "")}
     def deploy_child(self):
-        left = self.make_junktype(self.node.left, expr)
-        op = self.make_junktype(self.node.op, operator)
-        right =self.make_junktype(self.node.right, expr)
         self.struct.trunk = "{0}{1}{2}".format(
-                left.struct.trunk,
-                op.struct.trunk,
-                right.struct.trunk,)
+                self.junkchild_dict["left"].struct.trunk,
+                self.junkchild_dict["op"].struct.trunk,
+                self.junkchild_dict["right"].struct.trunk,)
 
 class JunkDict(JunkType):
     ast_type = ast.Dict
@@ -176,9 +169,7 @@ class JunkDict(JunkType):
         return {"keys": ChildArg(expr, "*"),
                    "values": ChildArg(expr, "*")}
     def deploy_child(self):
-        keys = [self.make_junktype(k, expr) for k in self.node.keys]
-        values = [self.make_junktype(v, expr) for v in self.node.values]
-        zipped = zip(keys, values)
+        zipped = zip(self.junkchild_dict["keys"], self.junkchild_dict["values"])
         self.struct.trunk += "{" + ",".join([k.output + ":" + v.output for k,v in zipped]) + "}"
 
 class JunkCall(JunkType):
@@ -189,11 +180,9 @@ class JunkCall(JunkType):
                    "args": ChildArg(expr, "*"),
                    "keywords": ChildArg(expr, "*")}
     def deploy_child(self):
-        func = self.make_junktype(self.node.func, expr)
-        args = [self.make_junktype(arg, expr) for arg in self.node.args]
-        args_str = ",".join([arg.struct.trunk for arg in args])
+        args_str = ",".join([arg.struct.trunk for arg in self.junkchild_dict["args"]])
         self.struct.trunk = "{0}({1})".format(
-                func.struct.trunk,
+                self.junkchild_dict["func"].struct.trunk,
                 args_str,
                 self.connector,)
 
@@ -247,7 +236,7 @@ class JunkAdd(JunkType):
         self.struct.trunk = "+"
 
 mod = [JunkModule]
-stmt = [JunkExpr, JunkAssign, JunkIf]
+stmt = [JunkExpr, JunkAssign]
 expr = [JunkBinOp, JunkDict, JunkCall, JunkNum, JunkStr, JunkNameConstant, JunkName]
 expr_context = [JunkLoad, JunkStore]
 operator = [JunkAdd]
