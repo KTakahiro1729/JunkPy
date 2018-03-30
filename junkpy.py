@@ -4,7 +4,7 @@ import copy
 from collections import namedtuple
 import builtins
 
-Node = namedtuple("Node", "nodetype number")
+ChildArg = namedtuple("ChildArg", "nodetype number")
 
 class JunkStruct():
     def __init__(self, head = "", neck = "", shoulder = "", body = "", foot = ""):
@@ -82,7 +82,7 @@ class JunkModule(JunkType):
     node_type = ast.Module
     @property
     def child_nodetype(self):
-        return {"body": Node(stmt, "*")}
+        return {"body": ChildArg(stmt, "*")}
     def __init__(self, *args,save_ns = False, **kwargs):
         self.save_ns = save_ns
         super().__init__(*args, **kwargs)
@@ -110,7 +110,7 @@ class JunkExpr(JunkType):
     node_type = ast.Expr
     @property
     def child_nodetype(self):
-        return {"value": Node(expr, "")}
+        return {"value": ChildArg(expr, "")}
     def deploy_child(self):
         value = self.make_junk(self.node.value, expr)
         self.struct +=  value.struct
@@ -121,7 +121,7 @@ class JunkAssign(JunkType):
     node_type = ast.Assign
     @property
     def child_nodetype(self):
-        return {"targets": Node(expr, "*"), "value": Node(expr, "")}
+        return {"targets": ChildArg(expr, "*"), "value": ChildArg(expr, "")}
     def deploy_child(self):
         targets = [self.make_junk(target,expr) for target in self.node.targets]
         value = self.make_junk(self.node.value, expr)
@@ -137,9 +137,9 @@ class JunkIf(JunkType):
     node_type = ast.If
     @property
     def child_nodetype(self):
-        return {"test": Node(expr, ""),
-                   "args": Node(operator, "*"),
-                   "orelse": Node(expr, "")}
+        return {"test": ChildArg(expr, ""),
+                   "args": ChildArg(operator, "*"),
+                   "orelse": ChildArg(expr, "")}
     def deploy_child(self):
         test = self.make_junk(self.
             node.test,
@@ -157,9 +157,9 @@ class JunkBinOp(JunkType):
     node_type = ast.BinOp
     @property
     def child_nodetype(self):
-        return {"left": Node(expr, ""),
-                   "op": Node(operator, ""),
-                   "right": Node(expr, "")}
+        return {"left": ChildArg(expr, ""),
+                   "op": ChildArg(operator, ""),
+                   "right": ChildArg(expr, "")}
     def deploy_child(self):
         left = self.make_junk(self.node.left, expr)
         op = self.make_junk(self.node.op, operator)
@@ -173,8 +173,8 @@ class JunkDict(JunkType):
     node_type = ast.Dict
     @property
     def child_nodetype(self):
-        return {"keys": Node(expr, "*"),
-                   "values": Node(expr, "*")}
+        return {"keys": ChildArg(expr, "*"),
+                   "values": ChildArg(expr, "*")}
     def deploy_child(self):
         keys = [self.make_junk(k, expr) for k in self.node.keys]
         values = [self.make_junk(v, expr) for v in self.node.values]
@@ -185,9 +185,9 @@ class JunkCall(JunkType):
     node_type = ast.Call
     @property
     def child_nodetype(self):
-        return {"func": Node(expr, ""),
-                   "args": Node(expr, "*"),
-                   "keywords": Node(expr, "*")}
+        return {"func": ChildArg(expr, ""),
+                   "args": ChildArg(expr, "*"),
+                   "keywords": ChildArg(expr, "*")}
     def deploy_child(self):
         func = self.make_junk(self.node.func, expr)
         args = [self.make_junk(arg, expr) for arg in self.node.args]
@@ -201,7 +201,7 @@ class JunkNum(JunkType):
     node_type = ast.Num
     @property
     def child_nodetype(self):
-        return {"n": Node(JunkTerminal, "")}
+        return {"n": ChildArg(JunkTerminal, "")}
     def deploy_child(self):
         self.struct.body += str(self.node.n)
 
@@ -209,7 +209,7 @@ class JunkStr(JunkType):
     node_type = ast.Str
     @property
     def child_nodetype(self):
-        return {"s": Node(JunkTerminal, "")}
+        return {"s": ChildArg(JunkTerminal, "")}
     def deploy_child(self):
         self.struct.body += "\"" + self.node.s + "\""
 
@@ -217,7 +217,7 @@ class JunkNameConstant(JunkType):
     node_type = ast.NameConstant
     @property
     def child_nodetype(self):
-        return {"value": Node(JunkTerminal, "")}
+        return {"value": ChildArg(JunkTerminal, "")}
     def deploy_child(self):
         self.struct.body = str(self.node.value)
 
@@ -226,7 +226,7 @@ class JunkName(JunkType):
     node_type = ast.Name
     @property
     def child_nodetype(self):
-        return {"id": Node(JunkTerminal, ""), "ctx":Node(expr_context, "")}
+        return {"id": ChildArg(JunkTerminal, ""), "ctx":ChildArg(expr_context, "")}
     def deploy_child(self):
         self.struct.body = "ns[\"{0}\"]".format(self.node.id)
 
