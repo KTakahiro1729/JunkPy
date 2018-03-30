@@ -27,7 +27,12 @@ class JunkType():
     @property
     def child_nodetype(self):
         return dict([])
-    def __init__(self, node, struct = None, connector = "", indent = ""):
+    def __init__(self,
+            node,
+            struct = None,
+            connector = "",
+            indent = "",
+            save_ns = False):
         if type(node) == str:
             node = ast.parse(node)
         self.node = node
@@ -36,6 +41,7 @@ class JunkType():
         self.struct = copy.deepcopy(struct)
         self.connector = connector
         self.indent = indent
+        self.save_ns = save_ns
         self.check_ast_type()
         self.junkchild_dict = self.create_junkchild_dict()
         self.deploy_child()
@@ -70,15 +76,24 @@ class JunkType():
             raise Exception("{0} not in candidate : {1}".format(type(child),candidate))
     def deploy_child(self):
         pass
-    # def make_block(self, exprs):
-    #
-    #     block_struct = JunkStruct(
-    #         head = "[None ",
-    #         shoulder = self.connector + self.indent + "for ns in[ns]",
-    #         foot="]")
-    #     for child in ast.iter_child_nodes(self.node):
-    #         block_struct += self.make_junktype(child, self.connector).struct
-    #     return block_struct
+    def create_block(self, stmt_list, ns_type):
+        if ns_type == "local":
+            pass
+        if ns_type == "module":
+            ns = "".join([
+                "__builtins__ ",
+                "if(type(__builtins__) is dict)else",
+                "{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}",
+            ])
+        if ns_type == "global":
+            ns = "ns"
+        block_struct = JunkStruct(
+            head = "[ns " if self.save_ns else "[None ",
+            shoulder = self.connector + self.indent + "for ns in[{0}]".format(ns),
+            foot="][0]")
+        for stmt in stmt_list:
+            block_struct += stmt.struct
+        return block_struct
 
 #terminal
 class JunkTerminal():
@@ -91,20 +106,11 @@ class JunkModule(JunkType):
     @property
     def child_nodetype(self):
         return {"body": ChildArg(stmt, "*")}
-    def __init__(self, *args,save_ns = False, **kwargs):
-        self.save_ns = save_ns
-        super().__init__(*args, **kwargs)
     def deploy_child(self):
-        self.struct.head     += "[ns " if self.save_ns else "[None "
-        ns_init = "".join([
-            "__builtins__ ",
-            "if(type(__builtins__) is dict)else",
-            "{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}"
-        ])
-        self.struct.shoulder += "for ns in[{0}]".format(ns_init)
-        self.struct.foot     += "][0]"
-        for body in self.junkchild_dict["body"]:
-            self.struct += body.struct
+        self.struct = self.create_block(
+            stmt_list = self.junkchild_dict["body"],
+            ns_type = "module"
+        )
 
 #stmt
 class JunkExpr(JunkType):
