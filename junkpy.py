@@ -22,21 +22,21 @@ class JunkStruct():
 
 class JunkType():
     @property
-    def node_type(self):
+    def ast_type(self):
         return ast.AST
     @property
     def child_nodetype(self):
         return dict([])
-    def check_node_type(self):
-        if type(self.node) != self.node_type:
-            raise Exception("Wrong Type\nWant : {0}\nNot  : {1}".format(self.node_type, type(self.node)))
+    def check_ast_type(self):
+        if type(self.node) != self.ast_type:
+            raise Exception("Wrong Type\nWant : {0}\nNot  : {1}".format(self.ast_type, type(self.node)))
     def __init__(self, node, struct = None, connector = "", indent = ""):
         if struct == None:
             struct = JunkStruct()
         if type(node) == str:
             node = ast.parse(node)
         self.node = node
-        self.check_node_type()
+        self.check_ast_type()
         self.struct = copy.deepcopy(struct)
         self.connector = connector
         self.indent = indent
@@ -51,7 +51,7 @@ class JunkType():
         if ast_type in builtin_types:
             return JunkTerminal()
         for junktype in lower_node:
-            if ast_type == junktype.node_type:
+            if ast_type == junktype.ast_type:
                 return junktype(node = child, connector = self.connector)
         else:
             raise Exception("{0} not in candidate : {1}".format(type(child),lower_node))
@@ -79,7 +79,7 @@ class JunkType():
 
 #mod
 class JunkModule(JunkType):
-    node_type = ast.Module
+    ast_type = ast.Module
     @property
     def child_nodetype(self):
         return {"body": ChildArg(stmt, "*")}
@@ -107,7 +107,7 @@ class JunkTerminal():
 
 #stmt
 class JunkExpr(JunkType):
-    node_type = ast.Expr
+    ast_type = ast.Expr
     @property
     def child_nodetype(self):
         return {"value": ChildArg(expr, "")}
@@ -118,7 +118,7 @@ class JunkExpr(JunkType):
         self.struct.body = "if[" + self.struct.body + "]]" + self.connector
 
 class JunkAssign(JunkType):
-    node_type = ast.Assign
+    ast_type = ast.Assign
     @property
     def child_nodetype(self):
         return {"targets": ChildArg(expr, "*"), "value": ChildArg(expr, "")}
@@ -134,7 +134,7 @@ class JunkAssign(JunkType):
                 self.connector,)
 
 class JunkIf(JunkType):
-    node_type = ast.If
+    ast_type = ast.If
     @property
     def child_nodetype(self):
         return {"test": ChildArg(expr, ""),
@@ -154,7 +154,7 @@ class JunkIf(JunkType):
 
 #expr
 class JunkBinOp(JunkType):
-    node_type = ast.BinOp
+    ast_type = ast.BinOp
     @property
     def child_nodetype(self):
         return {"left": ChildArg(expr, ""),
@@ -170,7 +170,7 @@ class JunkBinOp(JunkType):
                 right.struct.body,)
 
 class JunkDict(JunkType):
-    node_type = ast.Dict
+    ast_type = ast.Dict
     @property
     def child_nodetype(self):
         return {"keys": ChildArg(expr, "*"),
@@ -182,7 +182,7 @@ class JunkDict(JunkType):
         self.struct.body += "{" + ",".join([k.output + ":" + v.output for k,v in zipped]) + "}"
 
 class JunkCall(JunkType):
-    node_type = ast.Call
+    ast_type = ast.Call
     @property
     def child_nodetype(self):
         return {"func": ChildArg(expr, ""),
@@ -198,7 +198,7 @@ class JunkCall(JunkType):
                 self.connector,)
 
 class JunkNum(JunkType):
-    node_type = ast.Num
+    ast_type = ast.Num
     @property
     def child_nodetype(self):
         return {"n": ChildArg(JunkTerminal, "")}
@@ -206,7 +206,7 @@ class JunkNum(JunkType):
         self.struct.body += str(self.node.n)
 
 class JunkStr(JunkType):
-    node_type = ast.Str
+    ast_type = ast.Str
     @property
     def child_nodetype(self):
         return {"s": ChildArg(JunkTerminal, "")}
@@ -214,7 +214,7 @@ class JunkStr(JunkType):
         self.struct.body += "\"" + self.node.s + "\""
 
 class JunkNameConstant(JunkType):
-    node_type = ast.NameConstant
+    ast_type = ast.NameConstant
     @property
     def child_nodetype(self):
         return {"value": ChildArg(JunkTerminal, "")}
@@ -223,7 +223,7 @@ class JunkNameConstant(JunkType):
 
 
 class JunkName(JunkType):
-    node_type = ast.Name
+    ast_type = ast.Name
     @property
     def child_nodetype(self):
         return {"id": ChildArg(JunkTerminal, ""), "ctx":ChildArg(expr_context, "")}
@@ -232,17 +232,17 @@ class JunkName(JunkType):
 
 #expr_context
 class JunkLoad(JunkType):
-    node_type = ast.Load
+    ast_type = ast.Load
     def deploy_child(self):
         pass
 
 class JunkStore(JunkType):
-    node_type = ast.Store
+    ast_type = ast.Store
     def deploy_child(self):
         pass
 
 class JunkAdd(JunkType):
-    node_type = ast.Add
+    ast_type = ast.Add
     def deploy_child(self):
         self.struct.body = "+"
 
