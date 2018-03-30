@@ -40,7 +40,7 @@ class JunkType():
         self.struct = copy.deepcopy(struct)
         self.connector = connector
         self.indent = indent
-        self.junkchild_dict = self.parse_childnode()
+        self.junkchild_dict = self.create_junkchild_dict()
         self.deploy_child()
         self.output = self.struct.join(connector)
     def deploy_child(self):
@@ -55,7 +55,7 @@ class JunkType():
                 return junktype
         else:
             raise Exception("{0} not in candidate : {1}".format(type(child),candidate))
-    def parse_childnode(self):
+    def create_junkchild_dict(self):
         result = dict([])
         for child_name in self.node._fields:
             field = getattr(self.node, child_name)
