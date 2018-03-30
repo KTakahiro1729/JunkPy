@@ -33,10 +33,10 @@ class JunkType():
         if type(node) == str:
             node = ast.parse(node)
         self.node = node
-        self.check_ast_type()
         self.struct = copy.deepcopy(struct)
         self.connector = connector
         self.indent = indent
+        self.check_ast_type()
         self.junkchild_dict = self.create_junkchild_dict()
         self.deploy_child()
         self.output = self.struct.join(connector)
