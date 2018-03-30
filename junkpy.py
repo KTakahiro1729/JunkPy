@@ -27,9 +27,6 @@ class JunkType():
     @property
     def child_nodetype(self):
         return dict([])
-    def check_ast_type(self):
-        if type(self.node) != self.ast_type:
-            raise Exception("Wrong Type\nWant : {0}\nNot  : {1}".format(self.ast_type, type(self.node)))
     def __init__(self, node, struct = None, connector = "", indent = ""):
         if struct == None:
             struct = JunkStruct()
@@ -43,18 +40,9 @@ class JunkType():
         self.junkchild_dict = self.create_junkchild_dict()
         self.deploy_child()
         self.output = self.struct.join(connector)
-    def deploy_child(self):
-        pass
-    def judge_junktype(self, child, candidate):
-        ast_type = type(child)
-        builtin_types = [getattr(builtins, attr) for attr in dir(builtins)]
-        if ast_type in builtin_types:
-            return JunkTerminal
-        for junktype in candidate:
-            if ast_type == junktype.ast_type:
-                return junktype
-        else:
-            raise Exception("{0} not in candidate : {1}".format(type(child),candidate))
+    def check_ast_type(self):
+        if type(self.node) != self.ast_type:
+            raise Exception("Wrong Type\nWant : {0}\nNot  : {1}".format(self.ast_type, type(self.node)))
     def create_junkchild_dict(self):
         result = dict([])
         for child_name in self.node._fields:
@@ -70,6 +58,18 @@ class JunkType():
                     junktype = self.judge_junktype(child_node, candidate = node.nodetype)
                     result[child_name].append(junktype(node = child_node, connector = self.connector))
         return result
+    def judge_junktype(self, child, candidate):
+        ast_type = type(child)
+        builtin_types = [getattr(builtins, attr) for attr in dir(builtins)]
+        if ast_type in builtin_types:
+            return JunkTerminal
+        for junktype in candidate:
+            if ast_type == junktype.ast_type:
+                return junktype
+        else:
+            raise Exception("{0} not in candidate : {1}".format(type(child),candidate))
+    def deploy_child(self):
+        pass
     # def make_block(self, exprs):
     #
     #     block_struct = JunkStruct(
@@ -79,6 +79,11 @@ class JunkType():
     #     for child in ast.iter_child_nodes(self.node):
     #         block_struct += self.make_junktype(child, self.connector).struct
     #     return block_struct
+
+#terminal
+class JunkTerminal():
+    def __init__(self, *args, **kwargs):
+        pass
 
 #mod
 class JunkModule(JunkType):
@@ -100,11 +105,6 @@ class JunkModule(JunkType):
         self.struct.foot     += "][0]"
         for body in self.junkchild_dict["body"]:
             self.struct += body.struct
-
-#terminal
-class JunkTerminal():
-    def __init__(self, *args, **kwargs):
-        pass
 
 #stmt
 class JunkExpr(JunkType):
