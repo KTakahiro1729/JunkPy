@@ -15,7 +15,7 @@ class TestJunkTypeDirect(object):
                 type(self.input_ast),
                 self.junktype))
         actual = self.junktype(self.input_ast).output
-        self.assertEqual(self.expect, actual)
+        self.assertEqual(actual, self.expect)
 
 
 # real tests
