@@ -137,22 +137,23 @@ class JunkAssign(JunkType):
                 self.junkchild_dict["value"].struct.trunk,
                 self.connector,)
 
-# class JunkIf(JunkType):
-#     ast_type = ast.If
-#     @property
-#     def child_nodetype(self):
-#         return {"test": ChildArg(expr, ""),
-#                    "args": ChildArg(operator, "*"),
-#                    "orelse": ChildArg(expr, "")}
-#     def deploy_child(self):
-#         test = self.junkchild_dict["test"]
-#         body_block =  self.make_block(self.node.body)
-#         orelse_block =  self.make_block(self.node.orelse)
-#         self.struct.trunk = "".join([
-#         body_block.join(),
-#         "if({0})".format(test.struct.join()),
-#         orelse_block.join(),
-#         ])
+class JunkIf(JunkType):
+    ast_type = ast.If
+    @property
+    def child_nodetype(self):
+        return {"test": ChildArg(expr, ""),
+                   "body": ChildArg(stmt, "*"),
+                   "orelse": ChildArg(stmt, "*")}
+    def deploy_child(self):
+        self.struct.neck = "for ns in[ns "
+        test = self.junkchild_dict["test"]
+        body_block =  self.create_block(self.junkchild_dict["body"], ns_type = "global")
+        orelse_block =  self.create_block(self.junkchild_dict["orelse"], ns_type = "global")
+        self.struct.trunk = 'if[{0}]]'.format("".join([
+            body_block.join(),
+            "if({0})else".format(test.struct.join()),
+            orelse_block.join(),
+        ]))
 
 #expr
 class JunkBinOp(JunkType):
@@ -242,7 +243,7 @@ class JunkAdd(JunkType):
         self.struct.trunk = "+"
 
 mod = [JunkModule]
-stmt = [JunkExpr, JunkAssign]
+stmt = [JunkExpr, JunkAssign, JunkIf]
 expr = [JunkBinOp, JunkDict, JunkCall, JunkNum, JunkStr, JunkNameConstant, JunkName]
 expr_context = [JunkLoad, JunkStore]
 operator = [JunkAdd]

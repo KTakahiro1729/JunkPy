@@ -1,5 +1,7 @@
+import unittest
 from JunkPyTools import *
 from junkpy import *
+
 def create_test_list():
     return [
         ("Module",JunkModule(ast.parse("")).output, '[None for ns in[__builtins__ if(type(__builtins__) is dict)else{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}]][0]', True),
@@ -20,6 +22,7 @@ def create_test_list():
         ("Call",JunkModule("abs(2)").output,'[None for ns in[ns for ns in[__builtins__ if(type(__builtins__) is dict)else{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}]if[ns["abs"](2)]]][0]', True),
         ("Add",JunkModule("a=2\nb=a+1").output,'[None for ns in[ns for ns in[ns for ns in[__builtins__ if(type(__builtins__) is dict)else{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}]if[ns.update({"a":2})]]if[ns.update({"b":ns["a"]+1})]]][0]',True),
         ("FirstGoal",JunkModule("a = 7\nb = 2\na = 3\nc = a + b\nabs(c)").output, '[None for ns in[ns for ns in[ns for ns in[ns for ns in[ns for ns in[ns for ns in[__builtins__ if(type(__builtins__) is dict)else{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}]if[ns.update({"a":7})]]if[ns.update({"b":2})]]if[ns.update({"a":3})]]if[ns.update({"c":ns["a"]+ns["b"]})]]if[ns["abs"](ns["c"])]]][0]', True),
+        ("If",JunkModule('a = False\nif a:\n    print(1)\n    print(2)\nelse:\n    print(2)\n').output,'[None for ns in[ns for ns in[ns for ns in[__builtins__ if(type(__builtins__) is dict)else{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}]if[ns.update({"a":False})]]if[[None for ns in[ns for ns in[ns for ns in[ns]if[ns["print"](1)]]if[ns["print"](2)]]][0]if(ns["a"])else[None for ns in[ns for ns in[ns]if[ns["print"](2)]]][0]]]][0]', True)
     #    ("Call",JunkModule("abs(2,end=\"\\n\")").output,  "[None for ns in[ns for ns in[dict()]if[abs(2,end=\"\n\")]]][0]"),
     ]
 
