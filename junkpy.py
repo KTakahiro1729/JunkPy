@@ -217,7 +217,6 @@ class JunkNameConstant(JunkType):
     def deploy_child(self):
         self.struct.trunk = str(self.node.value)
 
-
 class JunkName(JunkType):
     ast_type = ast.Name
     @property
@@ -225,6 +224,15 @@ class JunkName(JunkType):
         return {"id": ChildArg(JunkTerminal, ""), "ctx":ChildArg(expr_context, "")}
     def deploy_child(self):
         self.struct.trunk = "ns[\"{0}\"]".format(self.node.id)
+
+class JunkList(JunkType):
+    ast_type = ast.List
+    @property
+    def child_nodetype(self):
+        return {"elts": ChildArg(expr, "*"), "ctx":ChildArg(expr_context, "")}
+    def deploy_child(self):
+        junkchild_output = [child.output for child in self.junkchild_dict["elts"]]
+        self.struct.trunk = "[{0}]".format(",".join(junkchild_output))
 
 #expr_context
 class JunkLoad(JunkType):
@@ -244,6 +252,6 @@ class JunkAdd(JunkType):
 
 mod = [JunkModule]
 stmt = [JunkExpr, JunkAssign, JunkIf]
-expr = [JunkBinOp, JunkDict, JunkCall, JunkNum, JunkStr, JunkNameConstant, JunkName]
+expr = [JunkBinOp, JunkDict, JunkCall, JunkNum, JunkStr, JunkNameConstant, JunkName, JunkList]
 expr_context = [JunkLoad, JunkStore]
 operator = [JunkAdd]

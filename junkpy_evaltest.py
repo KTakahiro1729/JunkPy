@@ -107,6 +107,12 @@ class TestIfEval(TestJunkTypeEval, unittest.TestCase):
     expect_code = '[None for ns in[ns for ns in[ns for ns in[__builtins__ if(type(__builtins__) is dict)else{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}]if[ns.update({"a":False})]]if[[None for ns in[ns for ns in[ns for ns in[ns]if[ns["print"](1)]]if[ns["print"](2)]]][0]if(ns["a"])else[None for ns in[ns for ns in[ns]if[ns["print"](2)]]][0]]]][0]'
     expect_stdout = '2\n'
     expect_value = None
+class TestListEval(TestJunkTypeEval, unittest.TestCase):
+    source = '[1,"s",3]'
+    actual_stdin = ''
+    expect_code = '[None for ns in[ns for ns in[__builtins__ if(type(__builtins__) is dict)else{attr:getattr(__builtins__,attr)for attr in dir(__builtins__)}]if[[1,"s",3]]]][0]'
+    expect_stdout = ''
+    expect_value = None
 
 if __name__ == "__main__":
     unittest.main()

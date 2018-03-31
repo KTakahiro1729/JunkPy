@@ -39,6 +39,11 @@ class TestNumDirect(TestJunkTypeDirect, unittest.TestCase):
     input_ast = parse_terminal('3')
     junktype = JunkNum
     expect = '3'
+class TestNumDirect(TestJunkTypeDirect, unittest.TestCase):
+    input_ast = parse_terminal('[1,"s",3]')
+    junktype = JunkList
+    expect = '[1,"s",3]'
+
 class TestStrDirect(TestJunkTypeDirect, unittest.TestCase):
     input_ast = parse_terminal('"source"')
     junktype = JunkStr
