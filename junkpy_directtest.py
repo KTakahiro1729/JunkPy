@@ -26,11 +26,11 @@ class TestModuleDirect(TestJunkTypeDirect, unittest.TestCase):
 class TestExprDirect(TestJunkTypeDirect, unittest.TestCase):
     input_ast = ast.parse('"b"').body[0]
     junktype = JunkExpr
-    expect = 'for ns in[ns if[\"b\"]]'
+    expect = 'if["b"]'
 class TestAssignDirect(TestJunkTypeDirect, unittest.TestCase):
     input_ast = ast.parse('a = 3').body[0]
     junktype = JunkAssign
-    expect = 'for ns in[ns if[ns.update({\"a\":3})]]'
+    expect = 'if[ns.update({"a":3})]'
 class TestDictDirect(TestJunkTypeDirect, unittest.TestCase):
     input_ast = parse_terminal('{1:2,"a":2}')
     junktype = JunkDict

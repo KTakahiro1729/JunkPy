@@ -120,8 +120,7 @@ class JunkExpr(JunkType):
         return {"value": ChildArg(expr, "")}
     def deploy_child(self):
         self.struct +=  self.junkchild_dict["value"].struct
-        self.struct.neck += "for ns in[ns "
-        self.struct.trunk = "if[" + self.struct.trunk + "]]" + self.connector
+        self.struct.trunk = "if[" + self.struct.trunk + "]" + self.connector
 
 class JunkAssign(JunkType):
     ast_type = ast.Assign
@@ -129,10 +128,9 @@ class JunkAssign(JunkType):
     def child_nodetype(self):
         return {"targets": ChildArg(expr, "*"), "value": ChildArg(expr, "")}
     def deploy_child(self):
-        self.struct.neck = "for ns in[ns "
         key_in_ns = self.junkchild_dict["targets"][0].struct.trunk
         key = key_in_ns[len("ns[\""):len(key_in_ns) - len("\"]")]
-        self.struct.trunk = "if[ns.update({{\"{0}\":{1}}})]]{2}".format(
+        self.struct.trunk = "if[ns.update({{\"{0}\":{1}}})]{2}".format(
                 key,
                 self.junkchild_dict["value"].struct.trunk,
                 self.connector,)
@@ -145,11 +143,10 @@ class JunkIf(JunkType):
                    "body": ChildArg(stmt, "*"),
                    "orelse": ChildArg(stmt, "*")}
     def deploy_child(self):
-        self.struct.neck = "for ns in[ns "
         test = self.junkchild_dict["test"]
         body_block =  self.create_block(self.junkchild_dict["body"], ns_type = "global")
         orelse_block =  self.create_block(self.junkchild_dict["orelse"], ns_type = "global")
-        self.struct.trunk = 'if[{0}]]'.format("".join([
+        self.struct.trunk = 'if[{0}]'.format("".join([
             body_block.join(),
             "if({0})else".format(test.struct.join()),
             orelse_block.join(),
