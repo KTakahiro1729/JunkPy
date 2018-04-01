@@ -11,7 +11,7 @@ class TestJunkTypeDirect(object):
     expect = None
     def test_direct(self):
         if type(self.input_ast) != self.junktype.ast_type:
-            raise TypeException("{0} is wrong ast type for {1}".format(
+            raise TypeError("{0} is wrong ast type for {1}".format(
                 type(self.input_ast),
                 self.junktype))
         actual = self.junktype(self.input_ast).output
@@ -56,6 +56,17 @@ class TestNameDirect(TestJunkTypeDirect, unittest.TestCase):
     input_ast = ast.parse("a = 3").body[0].targets[0]
     junktype = JunkName
     expect = 'ns["a"]'
-
+class TestIfDirect(TestJunkTypeDirect, unittest.TestCase):
+    input_ast = ast.parse("if True:\n\tprint(1)").body[0]
+    junktype = JunkIf
+    expect = 'if[[None for ns in[ns]if[ns["print"](1)]]if(True)else[None for ns in[ns]]]or True'
+class TestIfDirect(TestJunkTypeDirect, unittest.TestCase):
+    input_ast = ast.parse("if True:\n\tprint(1)").body[0]
+    junktype = JunkIf
+    expect = 'if[[None for ns in[ns]if[ns["print"](1)]]if(True)else[None for ns in[ns]]]or True'
+class TestForDirect(TestJunkTypeDirect, unittest.TestCase):
+    input_ast = ast.parse("for i in [1,2,3]:\n\tprint(1)").body[0]
+    junktype = JunkFor
+    expect = 'if[None for r in [(_ for _ in  [1,2,3])]for li in r if not(ns.update({"i":li}))if[None for ns in[ns]if[ns["print"](1)]]]or True'
 if __name__ == "__main__":
     unittest.main()
